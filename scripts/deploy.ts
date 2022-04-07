@@ -3,23 +3,24 @@
 //
 // When running the script with `npx hardhat run <script>` you'll find the Hardhat
 // Runtime Environment's members available in the global scope.
-import { ethers } from "hardhat";
+import hre from "hardhat";
 
 async function main() {
-  // Hardhat always runs the compile task when running scripts with its command
-  // line interface.
-  //
-  // If this script is run directly using `node` you may want to call compile
-  // manually to make sure everything is compiled
-  // await hre.run('compile');
+  const RemixV1 = await hre.ethers.getContractFactory("RemixUUPSV1");
+  const v1ProxyUUPS = await hre.upgrades.deployProxy(RemixV1, [], {
+    kind: "uups",
+  });
 
-  // We get the contract to deploy
-  const Greeter = await ethers.getContractFactory("Greeter");
-  const greeter = await Greeter.deploy("Hello, Hardhat!");
+  await v1ProxyUUPS.deployed();
+  console.log("Remix reward deployed to Ropsten:", v1ProxyUUPS.address);
 
-  await greeter.deployed();
+  setTimeout(async () => {
+    const RemixV2 = await hre.ethers.getContractFactory("RemixUUPSV2");
+    const v2ProxyUUPS = await hre.upgrades.upgradeProxy(v1ProxyUUPS, RemixV2);
 
-  console.log("Greeter deployed to:", greeter.address);
+    await v2ProxyUUPS.deployed();
+    console.log("Upgrade successful!", v1ProxyUUPS);
+  }, 10000);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
